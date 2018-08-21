@@ -50,6 +50,7 @@ export default {
     }
   },
   created() {
+    this.$store.dispatch('initRealtimeListeners')
     this.$store.dispatch('retrieveTodos')
     this.$store.dispatch('retrieveName')
       .then(response => {

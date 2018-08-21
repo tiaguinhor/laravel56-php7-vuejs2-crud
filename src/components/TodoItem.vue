@@ -20,77 +20,81 @@ export default {
   props: {
     todo: {
       type: Object,
-      required: true,
+      required: true
     },
     checkAll: {
       type: Boolean,
-      required: true,
+      required: true
     }
   },
   data() {
     return {
-      'id': this.todo.id,
-      'title': this.todo.title,
-      'completed': this.todo.completed,
-      'editing': this.todo.editing,
-      'beforeEditCache': '',
-    }
+      id: this.todo.id,
+      title: this.todo.title,
+      completed: this.todo.completed,
+      editing: this.todo.editing,
+      beforeEditCache: ''
+    };
   },
   created() {
-    eventBus.$on('pluralize', this.handlePluralize)
+    eventBus.$on('pluralize', this.handlePluralize);
   },
   beforeDestroy() {
-    eventBus.$off('pluralize', this.handlePluralize)
+    eventBus.$off('pluralize', this.handlePluralize);
   },
   watch: {
     checkAll() {
-      this.completed = this.checkAll ? true : this.todo.completed
+      this.completed = this.checkAll ? true : this.todo.completed;
+    },
+    todo() {
+      this.title = this.todo.title;
+      this.completed = this.todo.completed;
     }
   },
   directives: {
     focus: {
-      inserted: function (el) {
-        el.focus()
+      inserted: function(el) {
+        el.focus();
       }
     }
   },
   methods: {
     removeTodo(id) {
-      this.$store.dispatch('deleteTodo', id)
+      this.$store.dispatch('deleteTodo', id);
     },
     editTodo() {
-      this.beforeEditCache = this.title
-      this.editing = true
+      this.beforeEditCache = this.title;
+      this.editing = true;
     },
     doneEdit() {
       if (this.title.trim() == '') {
-        this.title = this.beforeEditCache
+        this.title = this.beforeEditCache;
       }
-      this.editing = false
+      this.editing = false;
       this.$store.dispatch('updateTodo', {
-        'id': this.id,
-        'title': this.title,
-        'completed': this.completed,
-        'editing': this.editing,
-      })
+        id: this.id,
+        title: this.title,
+        completed: this.completed,
+        editing: this.editing
+      });
     },
     cancelEdit() {
-      this.title = this.beforeEditCache
-      this.editing = false
+      this.title = this.beforeEditCache;
+      this.editing = false;
     },
     pluralize() {
-      eventBus.$emit('pluralize')
+      eventBus.$emit('pluralize');
     },
     handlePluralize() {
-      this.title = this.title + 's'
+      this.title = this.title + 's';
       this.$store.dispatch('updateTodo', {
-        'id': this.id,
-        'title': this.title,
-        'completed': this.completed,
-        'editing': this.editing,
-      })
+        id: this.id,
+        title: this.title,
+        completed: this.completed,
+        editing: this.editing
+      });
     }
   }
-}
+};
 </script>
 

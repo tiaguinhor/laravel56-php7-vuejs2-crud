@@ -42,7 +42,8 @@ export const store = new Vuex.Store({
         id: todo.id,
         title: todo.title,
         completed: false,
-        editing: false
+        editing: false,
+        timestamps: new Date()
       });
     },
     updateTodo(state, todo) {
@@ -56,7 +57,8 @@ export const store = new Vuex.Store({
     },
     deleteTodo(state, id) {
       const index = state.todos.findIndex(item => item.id == id);
-      state.todos.splice(index, 1);
+
+      if (index > 0) state.todos.splice(index, 1);
     },
     checkAll(state, checked) {
       state.todos.forEach(todo => (todo.completed = checked));
@@ -81,6 +83,35 @@ export const store = new Vuex.Store({
     }
   },
   actions: {
+    initRealtimeListeners(context) {
+      db.collection('cities').onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'added') {
+            const source = change.doc.metadata.hasPendingWrites
+              ? 'Local'
+              : 'Server';
+
+            if (source === 'Server') {
+              context.commit('addTodo', {
+                id: change.doc.id,
+                title: change.doc.data().title,
+                completed: false
+              });
+            }
+          }
+          if (change.type === 'modified') {
+            context.commit('updateTodo', {
+              id: change.doc.id,
+              title: change.doc.data().title,
+              completed: change.doc.data().completed
+            });
+          }
+          if (change.type === 'removed') {
+            context.commit('deleteTodo', change.doc.id);
+          }
+        });
+      });
+    },
     retrieveName(context) {
       axios.defaults.headers.common['Authorization'] =
         'Bearer ' + context.state.token;
@@ -164,65 +195,85 @@ export const store = new Vuex.Store({
       axios.defaults.headers.common['Authorization'] =
         'Bearer ' + context.state.token;
 
-      db.collection('todos')
-        .get()
-        .then(querySnapshot => {
-          let tempTodos = [];
+      // db
+      //   .collection('todos')
+      //   .get()
+      //   .then(querySnapshot => {
+      //     let tempTodos = [];
 
-          querySnapshot.forEach(result => {
-            console.log(result.data());
+      //     querySnapshot.forEach(result => {
+      //       console.log(result.data());
 
-            const data = {
-              id: result.id,
-              title: result.data().title,
-              completed: result.data().completed,
-              timestamps: result.data().timestamps
-            };
+      //       const data = {
+      //         id: result.id,
+      //         title: result.data().title,
+      //         completed: result.data().completed,
+      //         timestamps: result.data().timestamps
+      //       };
 
-            tempTodos.push(data);
-          });
+      //       tempTodos.push(data);
+      //     });
 
-          const tempTodosSorted = tempTodos.sort((a, b) => {
-            return a.timestamps.seconds - b.timestamps.seconds;
-          });
+      //     const tempTodosSorted = tempTodos.sort((a, b) => {
+      //       return a.timestamps.seconds - b.timestamps.seconds;
+      //     });
 
-          context.commit('retrieveTodos', tempTodos);
-        });
-      // axios.get('/todos').then(response => {
-      //     context.commit('retrieveTodos', response.data);
-      //   })
-      //   .catch(error => {
-      //     console.log(error);
+      //     context.commit('retrieveTodos', tempTodosSorted);
       //   });
+
+      axios
+        .get('/todos')
+        .then(response => {
+          context.commit('retrieveTodos', response.data);
+        })
+        .catch(error => {
+          console.log(error);
+        });
     },
     addTodo(context, todo) {
-      db.collection('todos')
-        .add({
-          title: todo.title,
-          completed: todo.completed,
-          timestamps: new Date()
-        })
-        .then(result => {
-          context.commit('addTodo', {
-            id: result.id,
-            title: todo.title,
-            completed: false
-          });
-        });
-
-      // axios
-      //   .post('/todos', {
+      // db
+      //   .collection('todos')
+      //   .add({
       //     title: todo.title,
-      //     completed: false
+      //     completed: todo.completed,
+      //     timestamps: new Date()
       //   })
-      //   .then(response => {
-      //     context.commit('addTodo', response.data);
-      //   })
-      //   .catch(error => {
-      //     console.log(error);
+      //   .then(result => {
+      //     context.commit('addTodo', {
+      //       id: result.id,
+      //       title: todo.title,
+      //       completed: false
+      //     });
       //   });
+
+      axios
+        .post('/todos', {
+          title: todo.title,
+          completed: false
+        })
+        .then(response => {
+          context.commit('addTodo', response.data);
+        })
+        .catch(error => {
+          console.log(error);
+        });
     },
     updateTodo(context, todo) {
+      // db
+      //   .collection('todos')
+      //   .doc(todo.id)
+      //   .set(
+      //     {
+      //       id: todo.id,
+      //       title: todo.title,
+      //       completed: todo.completed
+      //     },
+      //     { merge: true }
+      //   )
+      //   .then(() => {
+      //     context.commit('updateTodo', todo);
+      //   });
+
       axios
         .patch('/todos/' + todo.id, {
           title: todo.title,
@@ -236,6 +287,14 @@ export const store = new Vuex.Store({
         });
     },
     deleteTodo(context, id) {
+      // db
+      //   .collection('todos')
+      //   .doc(id)
+      //   .delete()
+      //   .then(() => {
+      //     context.commit('deleteTodo', id);
+      //   });
+
       axios
         .delete('/todos/' + id)
         .then(response => {
@@ -246,6 +305,21 @@ export const store = new Vuex.Store({
         });
     },
     checkAll(context, checked) {
+      // db
+      //   .collection('todos')
+      //   .get()
+      //   .then(querySnapshot => {
+      //     querySnapshot.forEach(data => {
+      //       data.ref
+      //         .update({
+      //           completed: checked
+      //         })
+      //         .then(() => {
+      //           context.commit('checkAll', checked);
+      //         });
+      //     });
+      //   });
+
       axios
         .patch('/todosCheckAll', {
           completed: checked
@@ -261,6 +335,18 @@ export const store = new Vuex.Store({
       context.commit('updateFilter', filter);
     },
     clearCompleted(context) {
+      // db
+      //   .collection('todos')
+      //   .where('completed', '==', true)
+      //   .get()
+      //   .then(querySnapshot => {
+      //     querySnapshot.forEach(data => {
+      //       data.ref.delete().then(() => {
+      //         context.commit('clearCompleted');
+      //       });
+      //     });
+      //   });
+
       const completed = context.state.todos
         .filter(todo => todo.completed)
         .map(todo => todo.id);
